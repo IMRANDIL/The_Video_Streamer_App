@@ -20,7 +20,7 @@ func main() {
 	})
 
 	// Define a route to stream video
-	r.HandleFunc("/video/{filename}", handlers.StreamVideoHandler).Methods("GET")
+	r.HandleFunc("/api/v1/video/{filename}", handlers.StreamVideoHandler).Methods("GET")
 
 	// Start the server
 

@@ -3,6 +3,8 @@ package handlers
 import (
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -13,16 +15,34 @@ func StreamVideoHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	filename := vars["filename"]
 
-	// Open the file for streaming
-	file, err := http.Dir("/path/to/local/videos").Open(filename)
+	dir, err := os.Getwd()
 	if err != nil {
 		// Handle the error
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	dir = filepath.Join(dir, "videos")
+	// Open the file for streaming
+	file, err := os.Open(filepath.Join(dir, filename))
 
-	// Set the content type header
-	w.Header().Set("Content-Type", "video/mp4")
+	if err != nil {
+		// Handle the error if file not found
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	defer file.Close() // don't forget to close the file
+	// Set the content type header based on file extension
+	contentType := "video/mp4"
+	if filepath.Ext(filename) == ".webm" {
+		contentType = "video/webm"
+	} else if filepath.Ext(filename) == ".ogv" {
+		contentType = "video/ogg"
+	}
+	w.Header().Set("Content-Type", contentType)
 
 	// Stream the video
 	if _, err := io.Copy(w, file); err != nil {
